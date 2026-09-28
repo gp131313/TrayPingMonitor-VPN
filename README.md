@@ -1,167 +1,87 @@
-# TrayPingMonitor
+# TrayPingMonitor-VPN
 
-A minimal Windows 10/11 system-tray (notification area) app that continuously pings a user-defined host (IPv4/IPv6/hostname) and shows status via a colored tray icon:
+Индикатор доступности хоста в трее Windows 10/11: цветной кружок с маленькой подписью **VPN** под ним.
+Одним взглядом видно, поднят ли туннель до домашней сети, и значок не путается с другими «светофорчиками» в трее.
 
-- **Green** = reachable
-- **Yellow** = degraded (slow > threshold and/or packet loss in last N pings)
-- **Red** = unreachable
-- **Gray** = unknown / starting / no host configured
+Форк [Sajjad-s/TrayPingMonitor](https://github.com/Sajjad-s/TrayPingMonitor) — вся логика пинга, трея и настроек
+взята оттуда, спасибо автору. Здесь изменён вид значка и версия .NET.
 
-The tray icon can also display:
-- **Latency** (compact) when **Green/Gray**
-- **Loss** (e.g. `L5`, `L25`) when **Yellow/Red**
+| Цвет | Значение |
+|---|---|
+| зелёный | хост отвечает |
+| жёлтый | медленно (выше порога, по умолчанию 150 мс) или есть потери в последних пингах |
+| красный | не отвечает |
+| серый | старт или хост не задан |
 
-Right-click menu:
-- **Set IP / Settings…**
-- **Start / Stop**
-- **Run at startup** (HKCU Run key)
-- **Exit**
+Задержка и потери — во всплывающей подсказке при наведении.
 
-Ping runs asynchronously (no UI freezes) using `System.Net.NetworkInformation.Ping`.
+## Что изменено относительно оригинала
 
----
+- **Значок**: вместо цифр задержки внутри кружка — кружок поменьше и под ним подпись `VPN`, нарисованная
+  пиксельным шрифтом (метод `TrayIconFactory.CreateVpnIcon`). Буквы того же цвета, что и статус, поэтому
+  читаются и на тёмной, и на светлой панели задач.
+- **.NET 10** вместо .NET 8 (`net10.0-windows`).
+- Убраны закоммиченные в оригинале папки `bin/` и `obj/`, добавлен `.gitignore`.
 
-## Requirements
+В изменённых файлах в первой строке стоит пометка об изменении (требование GPL-2.0).
 
-- Windows 10/11
-- .NET SDK 8.x (LTS recommended)
+## Установка
 
-Check your SDK:
+1. Скачать `TrayPingMonitor-VPN-v1.0.0-win-x64.zip` из [Releases](../../releases) и распаковать в постоянную
+   папку, например `%LOCALAPPDATA%\Programs\TrayPingMonitor`. Контрольные суммы — в `SHA256SUMS.txt`.
+2. Нужен [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
+3. Запустить `TrayPingMonitor.exe`. При первом запуске откроется окно настроек: хост (IPv4, IPv6 или имя,
+   например `192.168.1.1` — адрес роутера за VPN), интервал пинга и порог «медленно» в мс.
+4. Правой кнопкой по значку → **Run at startup** — автозапуск (`HKCU\...\Run`, права администратора не нужны).
 
-```powershell
-dotnet --list-sdks
+Если значка не видно — он спрятан за стрелкой у часов: *Параметры → Персонализация → Панель задач →
+Другие значки области уведомлений*.
+
+Exe не подписан — SmartScreen при первом запуске может предупредить: *Подробнее → Выполнить в любом случае*.
+Не доверяете готовому exe — соберите сами (ниже).
+
+Настройки хранятся в `%AppData%\TrayPingMonitor\settings.json`:
+
+```json
+{"Host":"192.168.1.1","IntervalMs":1000,"LatencyThresholdMs":150,"RunAtStartup":true,"WindowSize":20}
 ```
 
----
+## Сборка из исходников
 
-## Build & Run (CLI)
+Нужен .NET 10 SDK (подойдёт и портативный zip SDK, без установки в систему).
 
-From the repo folder:
-
-```powershell
-dotnet restore
-dotnet build
-dotnet run
+```
+dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 ```
 
-On first run, the settings window will appear. Enter:
-- Host (e.g. `4.2.2.4`, `1.1.1.1`, `google.com`, IPv6 is supported)
-- Interval (default 1000ms)
-- Slow threshold (default 150ms)
+Exe окажется в `bin\Release\net10.0-windows\win-x64\publish\`. Чтобы exe работал без установленного .NET,
+соберите с `--self-contained true` (файл станет заметно больше).
 
-Then the app runs in the system tray.
+## Ограничения
 
----
+- Один хост на экземпляр. Проверка — ICMP-пинг: если хост отвечает на ping, но не пропускает трафик, значок
+  будет зелёным; если ping фильтруется, значок будет красным при рабочем соединении.
+- Только Windows (WinForms).
 
-## Build & Run (Visual Studio)
+## Поддержать
 
-1. Open the folder or the `.csproj` in Visual Studio
-2. Build and run
+Если индикатор пригодился — можно кинуть на кофе, см. [DONATE.md](DONATE.md):
 
----
+- **Dogecoin**: `D7z9UaBsmcV7EqJo5Y5fdLG9xUNw47dNgr`
 
-## Settings / Persistence
+## Лицензия
 
-Settings are saved to:
-
-`%AppData%\TrayPingMonitor\settings.json`
-
-Stored values:
-- Host
-- Interval (ms)
-- Latency threshold (ms)
-- Run-at-startup toggle
+GPL-2.0, как у оригинала — см. [LICENSE](LICENSE). Без каких-либо гарантий.
 
 ---
 
-## Run at Startup
+## English
 
-The “Run at startup” toggle registers/unregisters the app using:
+A Windows 10/11 tray ping indicator: a colored dot with a tiny **VPN** label under it (green — reachable,
+yellow — slow or packet loss, red — unreachable, gray — starting). Handy to see at a glance that your tunnel to
+the home network is up, and easy to tell apart from other tray dots.
 
-`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-
-This is per-user and does not require admin privileges.
-
----
-
-## Publish (portable EXE)
-
-### Self-contained single-file (recommended)
-
-Build a single EXE that runs on machines without .NET installed:
-
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
-```
-
-Output:
-
-`bin\Release\net8.0-windows\win-x64\publish\`
-
-Distribute `TrayPingMonitor.exe` (and any other files in that folder if present).
-
-### Framework-dependent (smaller output)
-
-Requires .NET runtime on the target machine:
-
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained false
-```
-
----
-
-## Create an Installer
-
-### Option A: Inno Setup (simple .exe installer)
-
-1. Publish first (see above).
-2. Create `installer.iss` in the repo root:
-
-```ini
-[Setup]
-AppName=Tray Ping Monitor
-AppVersion=1.0.0
-DefaultDirName={pf}\TrayPingMonitor
-DefaultGroupName=Tray Ping Monitor
-OutputBaseFilename=TrayPingMonitorSetup
-Compression=lzma
-SolidCompression=yes
-
-[Files]
-Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-[Icons]
-Name: "{group}\Tray Ping Monitor"; Filename: "{app}\TrayPingMonitor.exe"
-Name: "{userdesktop}\Tray Ping Monitor"; Filename: "{app}\TrayPingMonitor.exe"; Tasks: desktopicon
-
-[Tasks]
-Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"; Flags: unchecked
-
-[Run]
-Filename: "{app}\TrayPingMonitor.exe"; Description: "Launch Tray Ping Monitor"; Flags: nowait postinstall skipifsilent
-```
-
-3. Compile with the Inno Setup Compiler.
-4. Distribute `TrayPingMonitorSetup.exe`.
-
-### Option B: MSIX (modern packaging)
-
-MSIX provides clean install/uninstall + Start Menu integration. Best created via Visual Studio’s packaging project.  
-(Requires signing for distribution.)
-
----
-
-## Troubleshooting
-
-### `dotnet` not found / “No .NET SDKs were found”
-Install the .NET SDK (not just runtime), then reopen PowerShell:
-
-```powershell
-dotnet --info
-```
-
-### Tray tooltip text looks cut off
-Windows tray tooltips have a small character limit. The full details are still tracked internally; consider adding a menu item or balloon tip if you want full text always visible.
-
----
-
+Fork of [Sajjad-s/TrayPingMonitor](https://github.com/Sajjad-s/TrayPingMonitor) (all ping/tray/settings logic is
+the original author's). Changes: pixel-font "VPN" label icon instead of latency digits, .NET 10, removed committed
+`bin/`/`obj/`. Download the zip from Releases, install the .NET 10 Desktop Runtime, run `TrayPingMonitor.exe`,
+set the host (e.g. your router `192.168.1.1`). License: GPL-2.0.

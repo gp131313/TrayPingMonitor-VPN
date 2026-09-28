@@ -1,3 +1,4 @@
+// NOTICE (GPL-2.0): modified in September 2026: the tray icon now uses TrayIconFactory.CreateVpnIcon instead of CreateStatusIcon.
 using System;
 using System.Drawing;
 using System.Globalization;
@@ -268,7 +269,7 @@ public sealed class MainApplicationContext : ApplicationContext
             }
         }
         // Create + assign dynamic icon
-        var newIcon = TrayIconFactory.CreateStatusIcon(bg, text);
+        var newIcon = TrayIconFactory.CreateVpnIcon(bg);
 
         // Dispose old dynamic icon safely
         var old = _dynamicIcon;

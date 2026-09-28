@@ -1,3 +1,4 @@
+// NOTICE (GPL-2.0): modified in September 2026: added CreateVpnIcon (colored dot with a pixel-font VPN label).
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -93,6 +94,44 @@ public static class TrayIconFactory
         return ToIconAndDestroyHandle(bmp);
     }
 
+
+    /// <summary>
+    /// Colored circle on top and a tiny pixel-font "VPN" label under it (letters use the status color).
+    /// </summary>
+    public static Icon CreateVpnIcon(Color color)
+    {
+        using var bmp = new Bitmap(16, 16);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+
+            var rect = new Rectangle(3, 0, 9, 9);
+            using var brush = new SolidBrush(color);
+            using var pen = new Pen(Color.FromArgb(180, 0, 0, 0), 1);
+            g.FillEllipse(brush, rect);
+            g.DrawEllipse(pen, rect);
+        }
+
+        string[] glyphs =
+        {
+            "X.X|X.X|X.X|X.X|.X.",
+            "XX.|X.X|XX.|X..|X..",
+            "X..X|XX.X|X.XX|X..X|X..X"
+        };
+
+        int x = 2;
+        foreach (var glyph in glyphs)
+        {
+            var rows = glyph.Split('|');
+            for (int r = 0; r < rows.Length; r++)
+                for (int col = 0; col < rows[r].Length; col++)
+                    if (rows[r][col] == 'X') bmp.SetPixel(x + col, 11 + r, color);
+            x += rows[0].Length + 1;
+        }
+
+        return ToIconAndDestroyHandle(bmp);
+    }
 
     private static Icon ToIconAndDestroyHandle(Bitmap bmp)
     {
