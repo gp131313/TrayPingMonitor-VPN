@@ -1,4 +1,5 @@
-// NOTICE (GPL-2.0): modified in September 2026: the tray icon now uses TrayIconFactory.CreateVpnIcon instead of CreateStatusIcon.
+// NOTICE (GPL-2.0): modified in September 2026: the tray icon now uses TrayIconFactory.CreateVpnIcon instead of CreateStatusIcon;
+// added the "Auto-restore if closed" menu item (KeepAliveManager).
 using System;
 using System.Drawing;
 using System.Globalization;
@@ -12,6 +13,9 @@ public sealed class MainApplicationContext : ApplicationContext
     private readonly NotifyIcon _notifyIcon = new();
     private readonly ToolStripMenuItem _miStartStop = new("Start");
     private readonly ToolStripMenuItem _miRunAtStartup = new("Run at startup") { CheckOnClick = true };
+    private readonly ToolStripMenuItem _miKeepAlive = new("Auto-restore if closed") { CheckOnClick = true };
+    private readonly ToolStripMenuItem _miExit = new("Exit");
+    private bool _syncingKeepAlive;
     private readonly Control _uiInvoker = new();
 
     private readonly Icon _iconGray;
@@ -43,12 +47,19 @@ public sealed class MainApplicationContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_miStartStop);
         menu.Items.Add(_miRunAtStartup);
+        menu.Items.Add(_miKeepAlive);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Exit", null, async (_, _) => await ExitAsync()));
+        menu.Items.Add(_miExit);
+        _miExit.Click += async (_, _) => await ExitAsync();
 
         _miStartStop.Click += async (_, _) => await ToggleStartStopAsync();
         _miRunAtStartup.Checked = SafeGetStartupCheckedInitial();
         _miRunAtStartup.CheckedChanged += (_, _) => OnRunAtStartupToggled();
+
+        KeepAliveManager.EnsureUpToDate();
+        RefreshKeepAliveMenu();
+        _miKeepAlive.CheckedChanged += (_, _) => OnKeepAliveToggled();
+        menu.Opening += (_, _) => RefreshKeepAliveMenu();
 
         _notifyIcon.ContextMenuStrip = menu;
         _notifyIcon.DoubleClick += (_, _) => ShowSettings();
@@ -163,6 +174,32 @@ public sealed class MainApplicationContext : ApplicationContext
         }
 
         SettingsStore.Save(_settings);
+    }
+
+    private void OnKeepAliveToggled()
+    {
+        if (_syncingKeepAlive) return;
+        try
+        {
+            KeepAliveManager.SetEnabled(_miKeepAlive.Checked);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Failed to update auto-restore:\n{ex.Message}",
+                "Tray Ping Monitor",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+        RefreshKeepAliveMenu();
+    }
+
+    private void RefreshKeepAliveMenu()
+    {
+        _syncingKeepAlive = true;
+        try { _miKeepAlive.Checked = KeepAliveManager.IsEnabled(); }
+        finally { _syncingKeepAlive = false; }
+        _miExit.Text = _miKeepAlive.Checked ? "Exit (auto-restore brings it back within a minute)" : "Exit";
     }
 
     private void MonitorOnUpdated()

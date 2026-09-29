@@ -21,18 +21,42 @@
   пиксельным шрифтом (метод `TrayIconFactory.CreateVpnIcon`). Буквы того же цвета, что и статус, поэтому
   читаются и на тёмной, и на светлой панели задач.
 - **.NET 10** вместо .NET 8 (`net10.0-windows`).
+- **Автовосстановление** (с v1.1.0): пункт меню **Auto-restore if closed** — если приложение закрыли или оно
+  упало, оно поднимется само в течение минуты (см. ниже).
+- **Один экземпляр на пользователя**: повторный запуск ничего не делает, значки не дублируются.
 - Убраны закоммиченные в оригинале папки `bin/` и `obj/`, добавлен `.gitignore`.
 
 В изменённых файлах в первой строке стоит пометка об изменении (требование GPL-2.0).
 
 ## Установка
 
-1. Скачать `TrayPingMonitor-VPN-v1.0.0-win-x64.zip` из [Releases](../../releases) и распаковать в постоянную
-   папку, например `%LOCALAPPDATA%\Programs\TrayPingMonitor`. Контрольные суммы — в `SHA256SUMS.txt`.
+1. Скачать zip последней версии из [Releases](../../releases) (например, `TrayPingMonitor-VPN-v1.1.0-win-x64.zip`)
+   и распаковать в постоянную папку, например `%LOCALAPPDATA%\Programs\TrayPingMonitor`. Контрольные суммы —
+   в `SHA256SUMS.txt`.
 2. Нужен [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
 3. Запустить `TrayPingMonitor.exe`. При первом запуске откроется окно настроек: хост (IPv4, IPv6 или имя,
    например `192.168.1.1` — адрес роутера за VPN), интервал пинга и порог «медленно» в мс.
 4. Правой кнопкой по значку → **Run at startup** — автозапуск (`HKCU\...\Run`, права администратора не нужны).
+5. Там же → **Auto-restore if closed** — автовосстановление.
+
+## Автовосстановление
+
+Галочка **Auto-restore if closed** создаёт задачу Планировщика `TrayPingMonitor keepalive` от вашей учётной
+записи (без прав администратора): она запускает `TrayPingMonitor.exe` при входе в систему (через 30 с) и
+каждую минуту. Пока приложение работает, повторные запуски ничего не делают — второй экземпляр сразу выходит.
+Если приложение закрыли или оно упало, значок вернётся в течение минуты.
+
+- Пока галочка стоит, пункт **Exit** подписан «Exit (auto-restore brings it back within a minute)».
+- Закрыть насовсем: снять галочку (задача удалится), затем **Exit**.
+- Если exe перенесли в другую папку, при следующем запуске задача сама перенастроится на новый путь.
+
+Из командной строки (для скриптов):
+
+```
+TrayPingMonitor.exe --keepalive on|off|status
+```
+
+Код возврата: `0` — включено / выполнено, `1` — выключено (для `status`), `2` — ошибка.
 
 Если значка не видно — он спрятан за стрелкой у часов: *Параметры → Персонализация → Панель задач →
 Другие значки области уведомлений*.
@@ -82,6 +106,8 @@ yellow — slow or packet loss, red — unreachable, gray — starting). Handy t
 the home network is up, and easy to tell apart from other tray dots.
 
 Fork of [Sajjad-s/TrayPingMonitor](https://github.com/Sajjad-s/TrayPingMonitor) (all ping/tray/settings logic is
-the original author's). Changes: pixel-font "VPN" label icon instead of latency digits, .NET 10, removed committed
+the original author's). Changes: pixel-font "VPN" label icon instead of latency digits, .NET 10, single instance
+per user, optional **Auto-restore if closed** (a per-user scheduled task restarts the app within a minute; also
+`TrayPingMonitor.exe --keepalive on|off|status`), removed committed
 `bin/`/`obj/`. Download the zip from Releases, install the .NET 10 Desktop Runtime, run `TrayPingMonitor.exe`,
 set the host (e.g. your router `192.168.1.1`). License: GPL-2.0.
