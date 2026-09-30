@@ -1,3 +1,4 @@
+// NOTICE (GPL-2.0): modified in September 2026: optional VPN connect/disconnect task names.
 namespace TrayPingMonitor;
 
 public sealed class AppSettings
@@ -9,4 +10,9 @@ public sealed class AppSettings
 
     // Rolling window size is fixed to 20 per requirements.
     public int WindowSize { get; set; } = 20;
+
+    // Optional: names of Task Scheduler tasks run by the tray menu items
+    // "Disconnect VPN" / "Connect VPN". Empty = the item is not shown.
+    public string? VpnDisconnectTask { get; set; }
+    public string? VpnConnectTask { get; set; }
 }

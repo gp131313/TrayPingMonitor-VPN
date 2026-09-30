@@ -1,5 +1,5 @@
 // NOTICE (GPL-2.0): modified in September 2026: the tray icon now uses TrayIconFactory.CreateVpnIcon instead of CreateStatusIcon;
-// added the "Auto-restore if closed" menu item (KeepAliveManager).
+// added the "Auto-restore if closed" menu item (KeepAliveManager) and an optional "Disconnect VPN" / "Connect VPN" toggle item.
 using System;
 using System.Drawing;
 using System.Globalization;
@@ -15,6 +15,7 @@ public sealed class MainApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _miRunAtStartup = new("Run at startup") { CheckOnClick = true };
     private readonly ToolStripMenuItem _miKeepAlive = new("Auto-restore if closed") { CheckOnClick = true };
     private readonly ToolStripMenuItem _miExit = new("Exit");
+    private readonly ToolStripMenuItem _miVpn = new("Connect VPN");
     private bool _syncingKeepAlive;
     private readonly Control _uiInvoker = new();
 
@@ -48,6 +49,14 @@ public sealed class MainApplicationContext : ApplicationContext
         menu.Items.Add(_miStartStop);
         menu.Items.Add(_miRunAtStartup);
         menu.Items.Add(_miKeepAlive);
+        if (!string.IsNullOrWhiteSpace(_settings.VpnDisconnectTask) || !string.IsNullOrWhiteSpace(_settings.VpnConnectTask))
+        {
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(_miVpn);
+            _miVpn.Click += (_, _) => OnVpnToggle();
+            menu.Opening += (_, _) => RefreshVpnMenu();
+            RefreshVpnMenu();
+        }
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_miExit);
         _miExit.Click += async (_, _) => await ExitAsync();
@@ -192,6 +201,48 @@ public sealed class MainApplicationContext : ApplicationContext
                 MessageBoxIcon.Warning);
         }
         RefreshKeepAliveMenu();
+    }
+
+    // Host answers (green/yellow) -> the item disconnects; otherwise (red/gray) -> it connects.
+    private bool VpnLooksUp()
+    {
+        var s = _monitor.GetHealthState();
+        return s == PingMonitor.HealthState.GreenOk || s == PingMonitor.HealthState.YellowDegraded;
+    }
+
+    private void RefreshVpnMenu()
+    {
+        bool up = VpnLooksUp();
+        string? task = up ? _settings.VpnDisconnectTask : _settings.VpnConnectTask;
+        _miVpn.Text = up ? "Disconnect VPN" : "Connect VPN";
+        _miVpn.Enabled = !string.IsNullOrWhiteSpace(task);
+        _miVpn.Tag = up;
+    }
+
+    private void OnVpnToggle()
+    {
+        // Use the state the user saw when the menu opened, not a newer ping result.
+        bool up = _miVpn.Tag is bool b ? b : VpnLooksUp();
+        string? task = up ? _settings.VpnDisconnectTask : _settings.VpnConnectTask;
+        if (string.IsNullOrWhiteSpace(task)) return;
+        RunVpnTask(task!, up ? "Disconnect VPN" : "Connect VPN");
+    }
+
+    private void RunVpnTask(string taskName, string label)
+    {
+        try
+        {
+            ScheduledTaskRunner.Run(taskName);
+            _notifyIcon.ShowBalloonTip(3000, "Tray Ping Monitor", label + ": started", ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"{label} failed:\n{ex.Message}",
+                "Tray Ping Monitor",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private void RefreshKeepAliveMenu()

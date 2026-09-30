@@ -24,13 +24,15 @@
 - **Автовосстановление** (с v1.1.0): пункт меню **Auto-restore if closed** — если приложение закрыли или оно
   упало, оно поднимется само в течение минуты (см. ниже).
 - **Один экземпляр на пользователя**: повторный запуск ничего не делает, значки не дублируются.
+- **Переключатель VPN** (с v1.2.0, необязательно): один пункт меню запускает заданную вами задачу Планировщика —
+  отключить туннель, если хост отвечает, или подключить, если нет (см. ниже).
 - Убраны закоммиченные в оригинале папки `bin/` и `obj/`, добавлен `.gitignore`.
 
 В изменённых файлах в первой строке стоит пометка об изменении (требование GPL-2.0).
 
 ## Установка
 
-1. Скачать zip последней версии из [Releases](../../releases) (например, `TrayPingMonitor-VPN-v1.1.0-win-x64.zip`)
+1. Скачать zip последней версии из [Releases](../../releases) (например, `TrayPingMonitor-VPN-v1.2.0-win-x64.zip`)
    и распаковать в постоянную папку, например `%LOCALAPPDATA%\Programs\TrayPingMonitor`. Контрольные суммы —
    в `SHA256SUMS.txt`.
 2. Нужен [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
@@ -57,6 +59,30 @@ TrayPingMonitor.exe --keepalive on|off|status
 ```
 
 Код возврата: `0` — включено / выполнено, `1` — выключено (для `status`), `2` — ошибка.
+
+## Переключатель VPN (необязательно, с v1.2.0)
+
+Если в `settings.json` заданы имена задач Планировщика `VpnDisconnectTask` и/или `VpnConnectTask`, в меню
+появляется один пункт-переключатель. Его подпись выбирается при открытии меню по цвету значка:
+
+- хост отвечает (зелёный или жёлтый) — **Disconnect VPN**, запускается задача `VpnDisconnectTask`;
+- не отвечает (красный или серый) — **Connect VPN**, запускается задача `VpnConnectTask`.
+
+```json
+{"Host":"192.168.1.1","IntervalMs":1000,"LatencyThresholdMs":150,"RunAtStartup":true,"WindowSize":20,
+ "VpnDisconnectTask":"VPN Disconnect","VpnConnectTask":"VPN Connect"}
+```
+
+Сам TrayPingMonitor прав администратора не получает — он только запускает задачи по имени. Что они делают, решаете
+вы. Например, задача с «highest privileges» останавливает `openconnect` и ставит флаг, по которому ваш watchdog
+перестаёт поднимать туннель; вторая снимает флаг и запускает watchdog. Скрипты таких задач держите в папке, куда
+обычный пользователь не может писать, иначе правка скрипта = выполнение с правами администратора.
+
+Крайние случаи:
+
+- Дома без VPN хост отвечает напрямую, поэтому пункт покажет **Disconnect VPN**.
+- При полном туннеле разрыв VPN рвёт и все удалённые сеансы, которые шли через него.
+- Без этих двух параметров пункта в меню нет.
 
 Если значка не видно — он спрятан за стрелкой у часов: *Параметры → Персонализация → Панель задач →
 Другие значки области уведомлений*.
@@ -108,6 +134,7 @@ the home network is up, and easy to tell apart from other tray dots.
 Fork of [Sajjad-s/TrayPingMonitor](https://github.com/Sajjad-s/TrayPingMonitor) (all ping/tray/settings logic is
 the original author's). Changes: pixel-font "VPN" label icon instead of latency digits, .NET 10, single instance
 per user, optional **Auto-restore if closed** (a per-user scheduled task restarts the app within a minute; also
-`TrayPingMonitor.exe --keepalive on|off|status`), removed committed
+`TrayPingMonitor.exe --keepalive on|off|status`), optional **VPN toggle** menu item (runs the scheduled task named
+in `VpnDisconnectTask` when the host answers, `VpnConnectTask` when it does not), removed committed
 `bin/`/`obj/`. Download the zip from Releases, install the .NET 10 Desktop Runtime, run `TrayPingMonitor.exe`,
 set the host (e.g. your router `192.168.1.1`). License: GPL-2.0.
