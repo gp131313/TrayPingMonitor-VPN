@@ -22,6 +22,9 @@ public static class ScheduledTaskRunner
         try { task = folder.GetTask(taskName); }
         catch { throw new InvalidOperationException($"Scheduled task \"{taskName}\" not found."); }
 
-        task.Run(Type.Missing);
+        // IRegisteredTask::Run takes a VARIANT that must be VT_EMPTY or VT_NULL when there are no parameters.
+        // Type.Missing is marshalled as VT_ERROR (DISP_E_PARAMNOTFOUND) and fails with E_INVALIDARG
+        // ("Value does not fall within the expected range"); DBNull.Value is marshalled as VT_NULL.
+        task.Run(DBNull.Value);
     }
 }

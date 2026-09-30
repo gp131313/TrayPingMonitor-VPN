@@ -32,7 +32,7 @@
 
 ## Установка
 
-1. Скачать zip последней версии из [Releases](../../releases) (например, `TrayPingMonitor-VPN-v1.2.0-win-x64.zip`)
+1. Скачать zip последней версии из [Releases](../../releases) (например, `TrayPingMonitor-VPN-v1.2.1-win-x64.zip`)
    и распаковать в постоянную папку, например `%LOCALAPPDATA%\Programs\TrayPingMonitor`. Контрольные суммы —
    в `SHA256SUMS.txt`.
 2. Нужен [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).

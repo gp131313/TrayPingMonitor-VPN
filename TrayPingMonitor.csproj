@@ -1,4 +1,4 @@
-<!-- NOTICE (GPL-2.0): modified in September 2026: target framework changed to net10.0-windows. -->
+<!-- NOTICE (GPL-2.0): modified in September 2026: target framework changed to net10.0-windows, version set. -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>TrayPingMonitor</AssemblyName>
+    <Version>1.2.1</Version>
   </PropertyGroup>
 
 </Project>
